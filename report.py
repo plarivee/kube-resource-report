@@ -23,6 +23,11 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 VERSION = 'v0.1'
 
 ONE_MEBI = 1024**2
+ONE_GIBI = 1024**3
+
+AVG_DAYS_PER_MONTH = 30.4375
+HOURS_PER_DAY = 24
+HOURS_PER_MONTH = HOURS_PER_DAY * AVG_DAYS_PER_MONTH
 
 FACTORS = {
     'm': 1 / 1000,
@@ -161,6 +166,8 @@ def query_cluster(cluster, executor, system_namespaces):
         cost = max(requests['cpu'] * cost_per_cpu, requests['memory'] * cost_per_memory)
         pods[(pod['metadata']['namespace'], pod['metadata']['name'])] = {'requests': requests, 'application': application, 'cost': cost}
 
+    hourly_cost = cluster_cost / HOURS_PER_MONTH
+
     cluster_summary = {
         'cluster': cluster,
         'nodes': nodes,
@@ -175,6 +182,8 @@ def query_cluster(cluster, executor, system_namespaces):
         'requests': cluster_requests,
         'usage': cluster_usage,
         'cost': cluster_cost,
+        'cost_per_usage_hour': {'cpu': hourly_cost / max(cluster_usage['cpu'], 1), 'memory': hourly_cost / max(cluster_usage['memory'] / ONE_GIBI, 1)},
+        'cost_per_request_hour': {'cpu': hourly_cost / max(cluster_requests['cpu'], 1), 'memory': hourly_cost / max(cluster_requests['memory'] / ONE_GIBI, 1)},
         'ingresses': []
     }
 
